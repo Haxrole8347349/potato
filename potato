@@ -1,130 +1,193 @@
--- Clati e slab :)))
+--Clati e slab?
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local ContentProvider = game:GetService("ContentProvider")
-
 local lp = Players.LocalPlayer
 
 -- =========================
--- INTERNAL STATE
+-- WHITELIST (NU STERGE ACESTEA!)
 -- =========================
-local killed = {}
-local connections = {}
+local function isSafeObject(obj)
+    -- NU atinge GUI-ul playerului
+    local parent = obj
+    while parent do
+        if parent == lp.PlayerGui or parent == game.CoreGui then
+            return true
+        end
+        if parent.Name == "ViciousBeeHunterGUI" then
+            return true
+        end
+        parent = parent.Parent
+    end
+    
+    -- NU atinge caracterul playerului
+    if lp.Character and (obj == lp.Character or obj:IsDescendantOf(lp.Character)) then
+        return true
+    end
+    
+    -- NU atinge camera
+    if obj:IsA("Camera") then
+        return true
+    end
+    
+    -- ⚠️ CRITICAL: NU STERGE "Particles" folder (aici sunt Thorn-urile!)
+    if obj.Name == "Particles" or obj:IsDescendantOf(Workspace:FindFirstChild("Particles") or game) then
+        return true
+    end
+    
+    -- NU sterge terenul
+    if obj == Workspace.Terrain then
+        return true
+    end
+    
+    -- NU sterge spawn locations (necesare pentru respawn)
+    if obj:IsA("SpawnLocation") or obj:FindFirstChildOfClass("SpawnLocation") then
+        return true
+    end
+    
+    -- NU sterge NPCs importante (shop-uri,quest givers)
+    if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("ClickDetector") then
+        return true
+    end
+    
+    return false
+end
 
 -- =========================
--- VISUAL NUKER
+-- RAM CLEANUP (SAFE MODE)
 -- =========================
-local function nuke(obj)
-    if not obj then return end
-    if killed[obj] then return end
-    killed[obj] = true
+print("🧹 Starting SAFE RAM cleanup...")
 
-    -- Kill effects
-    if obj:IsA("ParticleEmitter")
-    or obj:IsA("Trail")
+local cleaned = 0
+
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    if isSafeObject(obj) then continue end
+    
+    -- Sterge DOAR efecte vizuale consumatoare de RAM
+    if obj:IsA("ParticleEmitter") 
+    or obj:IsA("Trail") 
     or obj:IsA("Beam")
     or obj:IsA("Smoke")
     or obj:IsA("Fire")
-    or obj:IsA("Explosion") then
+    or obj:IsA("Sparkles") then
+        -- ⚠️ EXCEPȚIE: NU sterge dacă e în folder "Particles" (Thorn effects)
+        if not obj:IsDescendantOf(Workspace:FindFirstChild("Particles") or game) then
+            obj:Destroy()
+            cleaned = cleaned + 1
+        end
+    end
+    
+    -- Sterge lumini (economie mare de RAM)
+    if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
         obj:Destroy()
-        return
+        cleaned = cleaned + 1
     end
-
-    -- Kill textures
-    if obj:IsA("Decal") or obj:IsA("Texture") then
-        obj.Texture = ""
-        obj.Transparency = 1
-        return
+    
+    -- Sterge sunete la distanță (păstrează cele active)
+    if obj:IsA("Sound") and not obj.Playing then
+        local dist = math.huge
+        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = lp.Character.HumanoidRootPart
+            if obj:IsA("BasePart") then
+                dist = (obj.Position - hrp.Position).Magnitude
+            elseif obj.Parent and obj.Parent:IsA("BasePart") then
+                dist = (obj.Parent.Position - hrp.Position).Magnitude
+            end
+        end
+        
+        if dist > 200 then
+            obj:Destroy()
+            cleaned = cleaned + 1
+        end
     end
-
-    -- Flatten parts
-    if obj:IsA("BasePart") then
-        obj.Material = Enum.Material.Plastic
-        obj.Reflectance = 0
-        obj.CastShadow = false
-    end
-
-    -- Kill post-fx instantly if added later
-    if obj:IsA("PostEffect") then
-        obj.Enabled = false
+    
+    -- Sterge texturi (DAR NU din GUI sau Particles!)
+    if (obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance")) then
+        obj:Destroy()
+        cleaned = cleaned + 1
     end
 end
 
--- =========================
--- INITIAL WIPE
--- =========================
-for _, obj in ipairs(Workspace:GetDescendants()) do
-    nuke(obj)
-end
+print("✅ Cleaned " .. cleaned .. " objects (Particles folder PRESERVED)")
 
 -- =========================
--- FUTURE-PROOFING
--- =========================
-connections.desc = Workspace.DescendantAdded:Connect(nuke)
-
--- =========================
--- LIGHTING HARD OVERRIDE
+-- LIGHTING CLEANUP
 -- =========================
 Lighting.GlobalShadows = false
 Lighting.Brightness = 1
 Lighting.FogEnd = 9e9
 Lighting.EnvironmentDiffuseScale = 0
 Lighting.EnvironmentSpecularScale = 0
-Lighting.ClockTime = 12
 
 for _, fx in ipairs(Lighting:GetChildren()) do
-    if fx:IsA("PostEffect") then
-        fx.Enabled = false
+    if fx:IsA("PostEffect") or fx:IsA("Atmosphere") or fx:IsA("Sky") then
+        fx:Destroy()
     end
 end
 
-connections.light = Lighting.ChildAdded:Connect(function(obj)
-    if obj:IsA("PostEffect") then
-        obj.Enabled = false
-    end
-end)
-
 -- =========================
--- STREAMING & RENDER LIMITS
+-- RENDER SETTINGS (FPS + RAM)
 -- =========================
-pcall(function()
-    sethiddenproperty(lp, "MaximumSimulationRadius", 25)
-    sethiddenproperty(lp, "SimulationRadius", 25)
-end)
-
 pcall(function()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
 end)
 
--- =========================
--- PREVENT ASSET RELOAD
--- =========================
 pcall(function()
-    ContentProvider:SetAssetFetchThrottlingEnabled(true)
+    settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Skip
+    settings().Physics.AllowSleep = true
 end)
 
 -- =========================
--- BACKGROUND MODE (OP PART)
--- =========================
-RunService.RenderStepped:Connect(function()
-    -- When minimized / unfocused → ultra low work
-    if not game:GetService("UserInputService"):GetFocusedTextBox() then
-        RunService:Set3dRenderingEnabled(false)
-    else
-        RunService:Set3dRenderingEnabled(true)
-    end
-end)
-
--- =========================
--- PERIODIC MICRO-CLEAN (SAFE)
+-- PERIODIC DISTANCE CLEANUP (SAFE)
 -- =========================
 task.spawn(function()
     while true do
-        task.wait(300) -- every 5 minutes (24h safe)
-        killed = {}    -- allow GC without churn
-        collectgarbage("step", 200)
+        task.wait(10) -- La fiecare 10 secunde
+        
+        if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then 
+            task.wait(5)
+            continue 
+        end
+        
+        local hrp = lp.Character.HumanoidRootPart
+        local distCleaned = 0
+        
+        for _, part in ipairs(Workspace:GetDescendants()) do
+            if isSafeObject(part) then continue end
+            if not part:IsA("BasePart") then continue end
+            
+            -- Sterge doar obiecte FOARTE DEPARTE (300+ studs)
+            local dist = (part.Position - hrp.Position).Magnitude
+            
+            if dist > 300 then
+                -- NU sterge dacă are ClickDetector (pot fi quest items)
+                if not part:FindFirstChildOfClass("ClickDetector") then
+                    part:Destroy()
+                    distCleaned = distCleaned + 1
+                end
+            end
+        end
+        
+        if distCleaned > 0 then
+            print("🗑️ Removed " .. distCleaned .. " distant objects")
+        end
+        
+        -- Garbage collection agresiv
+        collectgarbage("collect")
+        collectgarbage("collect")
+    end
+end)
+
+-- =========================
+-- RAM MONITOR (OPTIONAL)
+-- =========================
+task.spawn(function()
+    while true do
+        task.wait(30)
+        local memUsage = collectgarbage("count") / 1024 -- MB
+        print(string.format("💾 RAM: %.1f MB", memUsage))
     end
 end)

@@ -1,4 +1,4 @@
---Clati e slab?
+--Clati e slab? (Enhanced with Vicious Bee Auto-Fix)
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -182,12 +182,178 @@ task.spawn(function()
 end)
 
 -- =========================
--- RAM MONITOR (OPTIONAL)
+-- 🆕 VICIOUS BEE AUTO-FIXER (MEMORY LEAK REPAIR)
+-- =========================
+print("🐝 Starting Vicious Bee memory leak auto-fixer...")
+
+task.spawn(function()
+    while true do
+        task.wait(120) -- La fiecare 2 minute
+        
+        -- Verifică dacă scriptul Vicious Bee rulează
+        if not _G.ViciousBeeConfig then 
+            task.wait(30)
+            continue 
+        end
+        
+        local config = _G.ViciousBeeConfig
+        local cleaned = 0
+        
+        -- 🔧 FIX 1: Curăță property connections moarte
+        if config._propertyConnections then
+            local alive = {}
+            for _, conn in pairs(config._propertyConnections) do
+                if conn and conn.Connected then
+                    table.insert(alive, conn)
+                else
+                    pcall(function() conn:Disconnect() end)
+                    cleaned = cleaned + 1
+                end
+            end
+            config._propertyConnections = alive
+            
+            -- 🔧 LIMIT: Max 100 connections (previne acumulare)
+            if #alive > 100 then
+                print("⚠️ Vicious Bee: TOO MANY CONNECTIONS (" .. #alive .. "), clearing oldest 50")
+                for i = 1, 50 do
+                    pcall(function() alive[i]:Disconnect() end)
+                    cleaned = cleaned + 1
+                end
+                config._propertyConnections = {table.unpack(alive, 51)}
+            end
+        end
+        
+        -- 🔧 FIX 2: Curăță _detectedStingers table
+        if config._detectedStingers then
+            local oldCount = 0
+            for obj, status in pairs(config._detectedStingers) do
+                oldCount = oldCount + 1
+                if typeof(obj) ~= "Instance" or not obj.Parent or status == "defeated" then
+                    config._detectedStingers[obj] = nil
+                    cleaned = cleaned + 1
+                end
+            end
+            
+            -- 🔧 LIMIT: Max 50 entries
+            if oldCount > 50 then
+                print("⚠️ Vicious Bee: Too many detected stingers (" .. oldCount .. "), clearing old ones")
+                config._detectedStingers = {}
+                cleaned = cleaned + oldCount
+            end
+        end
+        
+        -- 🔧 FIX 3: Curăță webhook cache AGRESIV
+        local now = tick()
+        
+        if config._lastWebhooks then
+            for k, t in pairs(config._lastWebhooks) do
+                if now - t > 3 then -- 3 sec în loc de 5
+                    config._lastWebhooks[k] = nil
+                    cleaned = cleaned + 1
+                end
+            end
+        end
+        
+        if config._lastLogSend then
+            for k, t in pairs(config._lastLogSend) do
+                if now - t > 10 then -- 10 sec în loc de 30
+                    config._lastLogSend[k] = nil
+                    cleaned = cleaned + 1
+                end
+            end
+        end
+        
+        -- 🔧 FIX 4: Disconnect duplicate monitoring connections
+        if config._playerMonitorConnection and config._playerRemovingConnection then
+            -- Verifică dacă sunt duplicate (mai multe instanțe)
+            local monitorCount = 0
+            local removingCount = 0
+            
+            -- Nu putem număra direct, dar putem verifica dacă există leak
+            -- prin verificarea dacă monitoring este activ dar stinger nu e detectat
+            if not config.stingerDetected and config._monitoringActive then
+                print("⚠️ Vicious Bee: Monitoring leak detected, fixing...")
+                
+                pcall(function() 
+                    if config._playerMonitorConnection then
+                        config._playerMonitorConnection:Disconnect()
+                    end
+                end)
+                pcall(function() 
+                    if config._playerRemovingConnection then
+                        config._playerRemovingConnection:Disconnect()
+                    end
+                end)
+                
+                config._playerMonitorConnection = nil
+                config._playerRemovingConnection = nil
+                config._monitoringActive = false
+                cleaned = cleaned + 2
+            end
+        end
+        
+        -- 🔧 FIX 5: Force GC pentru Vicious Bee
+        collectgarbage("collect")
+        collectgarbage("collect")
+        
+        if cleaned > 0 then
+            print("🐝 Vicious Bee Auto-Fix: Cleaned " .. cleaned .. " leaked objects")
+        end
+    end
+end)
+
+-- =========================
+-- 🆕 ENHANCED RAM MONITOR (with Vicious Bee stats)
 -- =========================
 task.spawn(function()
     while true do
-        task.wait(30)
+        task.wait(60) -- La fiecare minut
+        
         local memUsage = collectgarbage("count") / 1024 -- MB
-        print(string.format("💾 RAM: %.1f MB", memUsage))
+        
+        -- Stats pentru Vicious Bee (dacă rulează)
+        local vicStats = ""
+        if _G.ViciousBeeConfig then
+            local config = _G.ViciousBeeConfig
+            local connCount = config._propertyConnections and #config._propertyConnections or 0
+            local detectedCount = 0
+            if config._detectedStingers then
+                for _ in pairs(config._detectedStingers) do
+                    detectedCount = detectedCount + 1
+                end
+            end
+            vicStats = string.format(" | 🐝 Conn: %d | Detected: %d", connCount, detectedCount)
+        end
+        
+        
+        -- 🆕 AUTO-CLEANUP dacă RAM > 150 MB
+        if memUsage > 150 then
+            
+            -- Emergency cleanup pentru Vicious Bee
+            if _G.ViciousBeeConfig then
+                local config = _G.ViciousBeeConfig
+                
+                -- Disconnect jumătate din connections
+                if config._propertyConnections and #config._propertyConnections > 20 then
+                    local half = math.floor(#config._propertyConnections / 2)
+                    for i = 1, half do
+                        pcall(function() config._propertyConnections[i]:Disconnect() end)
+                    end
+                    config._propertyConnections = {table.unpack(config._propertyConnections, half + 1)}
+                    print("🐝 Emergency: Disconnected " .. half .. " connections")
+                end
+                
+                -- Clear cache-uri
+                config._detectedStingers = {}
+                config._lastWebhooks = {}
+                config._lastLogSend = {}
+            end
+            
+            -- Force GC triplu
+            collectgarbage("collect")
+            collectgarbage("collect")
+            collectgarbage("collect")
+            
+        end
     end
 end)

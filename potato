@@ -1,0 +1,130 @@
+-- Clati e slab :)))
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
+
+local lp = Players.LocalPlayer
+
+-- =========================
+-- INTERNAL STATE
+-- =========================
+local killed = {}
+local connections = {}
+
+-- =========================
+-- VISUAL NUKER
+-- =========================
+local function nuke(obj)
+    if not obj then return end
+    if killed[obj] then return end
+    killed[obj] = true
+
+    -- Kill effects
+    if obj:IsA("ParticleEmitter")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Explosion") then
+        obj:Destroy()
+        return
+    end
+
+    -- Kill textures
+    if obj:IsA("Decal") or obj:IsA("Texture") then
+        obj.Texture = ""
+        obj.Transparency = 1
+        return
+    end
+
+    -- Flatten parts
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.Plastic
+        obj.Reflectance = 0
+        obj.CastShadow = false
+    end
+
+    -- Kill post-fx instantly if added later
+    if obj:IsA("PostEffect") then
+        obj.Enabled = false
+    end
+end
+
+-- =========================
+-- INITIAL WIPE
+-- =========================
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    nuke(obj)
+end
+
+-- =========================
+-- FUTURE-PROOFING
+-- =========================
+connections.desc = Workspace.DescendantAdded:Connect(nuke)
+
+-- =========================
+-- LIGHTING HARD OVERRIDE
+-- =========================
+Lighting.GlobalShadows = false
+Lighting.Brightness = 1
+Lighting.FogEnd = 9e9
+Lighting.EnvironmentDiffuseScale = 0
+Lighting.EnvironmentSpecularScale = 0
+Lighting.ClockTime = 12
+
+for _, fx in ipairs(Lighting:GetChildren()) do
+    if fx:IsA("PostEffect") then
+        fx.Enabled = false
+    end
+end
+
+connections.light = Lighting.ChildAdded:Connect(function(obj)
+    if obj:IsA("PostEffect") then
+        obj.Enabled = false
+    end
+end)
+
+-- =========================
+-- STREAMING & RENDER LIMITS
+-- =========================
+pcall(function()
+    sethiddenproperty(lp, "MaximumSimulationRadius", 25)
+    sethiddenproperty(lp, "SimulationRadius", 25)
+end)
+
+pcall(function()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+end)
+
+-- =========================
+-- PREVENT ASSET RELOAD
+-- =========================
+pcall(function()
+    ContentProvider:SetAssetFetchThrottlingEnabled(true)
+end)
+
+-- =========================
+-- BACKGROUND MODE (OP PART)
+-- =========================
+RunService.RenderStepped:Connect(function()
+    -- When minimized / unfocused → ultra low work
+    if not game:GetService("UserInputService"):GetFocusedTextBox() then
+        RunService:Set3dRenderingEnabled(false)
+    else
+        RunService:Set3dRenderingEnabled(true)
+    end
+end)
+
+-- =========================
+-- PERIODIC MICRO-CLEAN (SAFE)
+-- =========================
+task.spawn(function()
+    while true do
+        task.wait(300) -- every 5 minutes (24h safe)
+        killed = {}    -- allow GC without churn
+        collectgarbage("step", 200)
+    end
+end)

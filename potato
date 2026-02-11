@@ -1,117 +1,32 @@
---Clati e slab? (LuaHeap Destroyer Edition)
--- Optimized specifically to reduce LuaHeap growth from Vicious Bee script
+-- 🥔 SAFE POTATO MODE (Non-invasive, no detection interference)
 
-local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
 local lp = Players.LocalPlayer
 
--- =========================
--- WHITELIST (NU STERGE ACESTEA!)
--- =========================
-local function isSafeObject(obj)
-    local parent = obj
-    while parent do
-        if parent == lp.PlayerGui or parent == game.CoreGui then
-            return true
-        end
-        if parent.Name == "ViciousBeeHunterGUI" then
-            return true
-        end
-        parent = parent.Parent
-    end
-    
-    if lp.Character and (obj == lp.Character or obj:IsDescendantOf(lp.Character)) then
-        return true
-    end
-    
-    if obj:IsA("Camera") then
-        return true
-    end
-    
-    -- ⚠️ CRITICAL: NU STERGE "Particles" folder
-    if obj.Name == "Particles" or obj:IsDescendantOf(Workspace:FindFirstChild("Particles") or game) then
-        return true
-    end
-    
-    if obj == Workspace.Terrain then
-        return true
-    end
-    
-    if obj:IsA("SpawnLocation") or obj:FindFirstChildOfClass("SpawnLocation") then
-        return true
-    end
-    
-    if obj:FindFirstChild("Humanoid") and obj:FindFirstChild("ClickDetector") then
-        return true
-    end
-    
-    return false
-end
+print("🥔 Applying SAFE Potato Mode...")
 
 -- =========================
--- INITIAL RAM CLEANUP
--- =========================
-print("🧹 Starting SAFE RAM cleanup...")
-
-local cleaned = 0
-
-for _, obj in ipairs(Workspace:GetDescendants()) do
-    if isSafeObject(obj) then continue end
-    
-    if obj:IsA("ParticleEmitter") 
-    or obj:IsA("Trail") 
-    or obj:IsA("Beam")
-    or obj:IsA("Smoke")
-    or obj:IsA("Fire")
-    or obj:IsA("Sparkles") then
-        if not obj:IsDescendantOf(Workspace:FindFirstChild("Particles") or game) then
-            obj:Destroy()
-            cleaned = cleaned + 1
-        end
-    end
-    
-    if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-        obj:Destroy()
-        cleaned = cleaned + 1
-    end
-    
-    if obj:IsA("Sound") and not obj.Playing then
-        local dist = math.huge
-        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = lp.Character.HumanoidRootPart
-            if obj:IsA("BasePart") then
-                dist = (obj.Position - hrp.Position).Magnitude
-            elseif obj.Parent and obj.Parent:IsA("BasePart") then
-                dist = (obj.Parent.Position - hrp.Position).Magnitude
-            end
-        end
-        
-        if dist > 200 then
-            obj:Destroy()
-            cleaned = cleaned + 1
-        end
-    end
-    
-    if (obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance")) then
-        obj:Destroy()
-        cleaned = cleaned + 1
-    end
-end
-
--- =========================
--- LIGHTING CLEANUP
+-- LIGHTING SIMPLIFICATION
 -- =========================
 Lighting.GlobalShadows = false
-Lighting.Brightness = 1
 Lighting.FogEnd = 9e9
+Lighting.Brightness = 1
 Lighting.EnvironmentDiffuseScale = 0
 Lighting.EnvironmentSpecularScale = 0
+Lighting.ClockTime = 14
 
-for _, fx in ipairs(Lighting:GetChildren()) do
-    if fx:IsA("PostEffect") or fx:IsA("Atmosphere") or fx:IsA("Sky") then
-        fx:Destroy()
+for _, v in ipairs(Lighting:GetChildren()) do
+    if v:IsA("PostEffect") 
+    or v:IsA("Atmosphere") 
+    or v:IsA("BloomEffect")
+    or v:IsA("SunRaysEffect")
+    or v:IsA("ColorCorrectionEffect")
+    or v:IsA("DepthOfFieldEffect")
+    or v:IsA("Sky") then
+        v:Destroy()
     end
 end
 
@@ -120,286 +35,72 @@ end
 -- =========================
 pcall(function()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-    settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level01
-end)
-
-pcall(function()
-    settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Skip
-    settings().Physics.AllowSleep = true
 end)
 
 -- =========================
--- PERIODIC DISTANCE CLEANUP
+-- REMOVE VISUAL EFFECTS (ONE TIME ONLY)
 -- =========================
-task.spawn(function()
-    while true do
-        task.wait(10)
-        
-        if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then 
-            task.wait(5)
-            continue 
-        end
-        
-        local hrp = lp.Character.HumanoidRootPart
-        local distCleaned = 0
-        
-        for _, part in ipairs(Workspace:GetDescendants()) do
-            if isSafeObject(part) then continue end
-            if not part:IsA("BasePart") then continue end
-            
-            local dist = (part.Position - hrp.Position).Magnitude
-            
-            if dist > 300 then
-                if not part:FindFirstChildOfClass("ClickDetector") then
-                    part:Destroy()
-                    distCleaned = distCleaned + 1
-                end
-            end
-        end
-        
-        if distCleaned > 0 then
-            print("🗑️ Removed " .. distCleaned .. " distant objects")
-        end
-        
-        collectgarbage("collect")
+for _, obj in ipairs(Workspace:GetDescendants()) do
+    
+    if obj:IsA("ParticleEmitter")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles") then
+        obj.Enabled = false
     end
-end)
 
--- =========================
--- 🆕 LUAHEAP DESTROYER (AGGRESSIVE FIX for Vicious Bee)
--- =========================
-print("🐝 Starting LuaHeap Destroyer for Vicious Bee...")
-
--- String cache pentru webhook keys (reduce string allocations)
-local stringCache = {}
-local function getCachedString(str)
-    if not stringCache[str] then
-        stringCache[str] = str
+    if obj:IsA("PointLight")
+    or obj:IsA("SpotLight")
+    or obj:IsA("SurfaceLight") then
+        obj.Enabled = false
     end
-    return stringCache[str]
+
+    if obj:IsA("Decal")
+    or obj:IsA("Texture")
+    or obj:IsA("SurfaceAppearance") then
+        obj:Destroy()
+    end
 end
 
-task.spawn(function()
-    while true do
-        task.wait(60) -- La fiecare MINUT (nu 2 minute!)
-        
-        if not _G.ViciousBeeConfig then 
-            task.wait(30)
-            continue 
-        end
-        
-        local config = _G.ViciousBeeConfig
-        local cleaned = 0
-        local heapBefore = collectgarbage("count")
-        
-        -- 🔥 FIX 1: AGGRESSIVE property connections cleanup
-        if config._propertyConnections then
-            local alive = {}
-            local dead = 0
-            
-            for _, conn in pairs(config._propertyConnections) do
-                if conn and conn.Connected then
-                    table.insert(alive, conn)
-                else
-                    pcall(function() 
-                        conn:Disconnect() 
-                    end)
-                    dead = dead + 1
-                    cleaned = cleaned + 1
-                end
-            end
-            
-            config._propertyConnections = alive
-            
-            -- 🔥 HARD LIMIT: Max 50 connections (era 100, prea mult!)
-            if #alive > 50 then
-                for i = 1, 30 do
-                    pcall(function() alive[i]:Disconnect() end)
-                    cleaned = cleaned + 1
-                end
-                config._propertyConnections = {table.unpack(alive, 31)}
-            end
-            
-            if dead > 0 then
-                print("🧹 Removed " .. dead .. " dead connections")
-            end
-        end
-        
-        -- 🔥 FIX 2: CLEAR _detectedStingers COMPLET
-        if config._detectedStingers then
-            local count = 0
-            for obj, status in pairs(config._detectedStingers) do
-                count = count + 1
-                if typeof(obj) ~= "Instance" or not obj.Parent or status == "defeated" then
-                    config._detectedStingers[obj] = nil
-                    cleaned = cleaned + 1
-                end
-            end
-            
-            -- 🔥 HARD LIMIT: Max 20 entries (era 50, prea mult!)
-            if count > 20 then
-                print("⚠️ LuaHeap: _detectedStingers has " .. count .. " entries, CLEARING ALL")
-                config._detectedStingers = {}
-                cleaned = cleaned + count
-            end
-        end
-        
-        -- 🔥 FIX 3: ULTRA-AGGRESSIVE webhook cache cleanup
-        local now = tick()
-        
-        if config._lastWebhooks then
-            local count = 0
-            for k, t in pairs(config._lastWebhooks) do
-                count = count + 1
-                -- 1 sec instead of 3! (strings take LuaHeap space)
-                if now - t > 1 then
-                    config._lastWebhooks[k] = nil
-                    cleaned = cleaned + 1
-                end
-            end
-            
-            -- Clear entire cache if > 10 entries
-            if count > 10 then
-                config._lastWebhooks = {}
-                cleaned = cleaned + count
-            end
-        end
-        
-        if config._lastLogSend then
-            local count = 0
-            for k, t in pairs(config._lastLogSend) do
-                count = count + 1
-                -- 5 sec instead of 10!
-                if now - t > 5 then
-                    config._lastLogSend[k] = nil
-                    cleaned = cleaned + 1
-                end
-            end
-            
-            if count > 10 then
-                config._lastLogSend = {}
-                cleaned = cleaned + count
-            end
-        end
-        
-        -- 🔥 FIX 4: Detect and FIX monitoring leaks AGGRESSIVELY
-        if config._monitoringActive and not config.stingerDetected then
-            print("⚠️ LuaHeap: Monitoring leak detected, FORCE STOPPING")
-            
-            config._monitoringActive = false
-            
-            if config._playerMonitorConnection then
-                pcall(function() config._playerMonitorConnection:Disconnect() end)
-                config._playerMonitorConnection = nil
-                cleaned = cleaned + 1
-            end
-            
-            if config._playerRemovingConnection then
-                pcall(function() config._playerRemovingConnection:Disconnect() end)
-                config._playerRemovingConnection = nil
-                cleaned = cleaned + 1
-            end
-            
-            if config._activeStatusTimer then
-                pcall(function() task.cancel(config._activeStatusTimer) end)
-                config._activeStatusTimer = nil
-            end
-        end
-        
-        -- 🔥 FIX 5: Clear string cache every 5 minutes
-        if #stringCache > 100 then
-            stringCache = {}
-            print("🧹 Cleared string cache")
-        end
-        
-        -- 🔥 FIX 6: TRIPLE garbage collection for LuaHeap
-        collectgarbage("collect")
-        task.wait(0.1)
-        collectgarbage("collect")
-        task.wait(0.1)
-        collectgarbage("collect")
-        
-        local heapAfter = collectgarbage("count")
-        local heapFreed = heapBefore - heapAfter
-        
-        if cleaned > 0 or heapFreed > 100 then
-            print(string.format("🐝 LuaHeap: Cleaned %d objects | Freed %.1f KB", cleaned, heapFreed))
-        end
+-- =========================
+-- SIMPLIFY MATERIALS (Visual Only)
+-- =========================
+for _, part in ipairs(Workspace:GetDescendants()) do
+    if part:IsA("BasePart") then
+        part.Material = Enum.Material.SmoothPlastic
+        part.Reflectance = 0
+    end
+end
+
+-- =========================
+-- OPTIONAL: AUTO DISABLE FUTURE EFFECTS
+-- (Lightweight hook, not heavy scanning)
+-- =========================
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("ParticleEmitter")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles") then
+        obj.Enabled = false
+    end
+
+    if obj:IsA("PointLight")
+    or obj:IsA("SpotLight")
+    or obj:IsA("SurfaceLight") then
+        obj.Enabled = false
+    end
+
+    if obj:IsA("Decal")
+    or obj:IsA("Texture")
+    or obj:IsA("SurfaceAppearance") then
+        obj:Destroy()
     end
 end)
 
--- =========================
--- 🆕 EMERGENCY LUAHEAP PROTECTION
--- =========================
-task.spawn(function()
-    while true do
-        task.wait(30) -- Check every 30 seconds
-        
-        local luaHeap = collectgarbage("count") / 1024 -- MB
-        
-        -- Stats pentru Vicious Bee
-        local vicStats = ""
-        if _G.ViciousBeeConfig then
-            local config = _G.ViciousBeeConfig
-            local connCount = config._propertyConnections and #config._propertyConnections or 0
-            local detectedCount = 0
-            if config._detectedStingers then
-                for _ in pairs(config._detectedStingers) do
-                    detectedCount = detectedCount + 1
-                end
-            end
-            vicStats = string.format(" | 🐝 Conn: %d | Detected: %d", connCount, detectedCount)
-        end
-        
-        -- 🔥 EMERGENCY at 100 MB (era 150, prea mult!)
-        if luaHeap > 100 then
-            print("🚨 EMERGENCY: LuaHeap > 100 MB! AGGRESSIVE CLEANUP!")
-            
-            if _G.ViciousBeeConfig then
-                local config = _G.ViciousBeeConfig
-                
-                -- 🔥 DISCONNECT ALL property connections
-                if config._propertyConnections then
-                    local count = #config._propertyConnections
-                    for _, conn in pairs(config._propertyConnections) do
-                        pcall(function() conn:Disconnect() end)
-                    end
-                    config._propertyConnections = {}
-                    print("🧹 Emergency: Disconnected ALL " .. count .. " connections")
-                end
-                
-                -- 🔥 CLEAR ALL caches
-                config._detectedStingers = {}
-                config._lastWebhooks = {}
-                config._lastLogSend = {}
-                
-                -- 🔥 STOP monitoring completely
-                if config._monitoringActive then
-                    config._monitoringActive = false
-                    
-                    if config._playerMonitorConnection then
-                        pcall(function() config._playerMonitorConnection:Disconnect() end)
-                        config._playerMonitorConnection = nil
-                    end
-                    
-                    if config._playerRemovingConnection then
-                        pcall(function() config._playerRemovingConnection:Disconnect() end)
-                        config._playerRemovingConnection = nil
-                    end
-                    
-                    if config._activeStatusTimer then
-                        pcall(function() task.cancel(config._activeStatusTimer) end)
-                        config._activeStatusTimer = nil
-                    end
-                end
-            end
-            
-            -- 🔥 QUINTUPLE GC (extreme!)
-            for i = 1, 5 do
-                collectgarbage("collect")
-                task.wait(0.05)
-            end
-            
-        end
-    end
-end)
+collectgarbage("collect")
+
+print("🥔 Potato Mode applied safely.")

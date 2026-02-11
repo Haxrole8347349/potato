@@ -1,4 +1,4 @@
--- 🥔 SAFE POTATO MODE (Non-invasive, no detection interference)
+-- 🥔 SAFE POTATO MODE v2 (Vic-Compatible, No GC, No Heavy Hooks)
 
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
@@ -6,7 +6,7 @@ local Players = game:GetService("Players")
 
 local lp = Players.LocalPlayer
 
-print("🥔 Applying SAFE Potato Mode...")
+print("🥔 Applying SAFE Potato Mode v2...")
 
 -- =========================
 -- LIGHTING SIMPLIFICATION
@@ -16,31 +16,96 @@ Lighting.FogEnd = 9e9
 Lighting.Brightness = 1
 Lighting.EnvironmentDiffuseScale = 0
 Lighting.EnvironmentSpecularScale = 0
-Lighting.ClockTime = 14
 
 for _, v in ipairs(Lighting:GetChildren()) do
-    if v:IsA("PostEffect") 
-    or v:IsA("Atmosphere") 
+    if v:IsA("PostEffect")
+    or v:IsA("Atmosphere")
     or v:IsA("BloomEffect")
     or v:IsA("SunRaysEffect")
     or v:IsA("ColorCorrectionEffect")
-    or v:IsA("DepthOfFieldEffect")
-    or v:IsA("Sky") then
+    or v:IsA("DepthOfFieldEffect") then
         v:Destroy()
     end
 end
 
--- =========================
--- RENDER SETTINGS
--- =========================
 pcall(function()
     settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
 end)
 
 -- =========================
--- REMOVE VISUAL EFFECTS (ONE TIME ONLY)
+-- SAFE VISUAL REDUCTION
+-- (Does NOT touch Particles/Vicious folder)
 -- =========================
+
+local particlesFolder = Workspace:FindFirstChild("Particles")
+local viciousFolder = particlesFolder and particlesFolder:FindFirstChild("Vicious")
+
+local function isProtected(obj)
+    if not obj then return false end
+    
+    -- Protect player character
+    if lp.Character and obj:IsDescendantOf(lp.Character) then
+        return true
+    end
+    
+    -- Protect Vicious system
+    if viciousFolder and obj:IsDescendantOf(viciousFolder) then
+        return true
+    end
+    
+    -- Protect entire Particles folder
+    if particlesFolder and obj:IsDescendantOf(particlesFolder) then
+        return true
+    end
+    
+    return false
+end
+
+-- ONE PASS ONLY
 for _, obj in ipairs(Workspace:GetDescendants()) do
+    
+    if isProtected(obj) then
+        continue
+    end
+    
+    -- Disable effects (not destroy)
+    if obj:IsA("ParticleEmitter")
+    or obj:IsA("Trail")
+    or obj:IsA("Beam")
+    or obj:IsA("Smoke")
+    or obj:IsA("Fire")
+    or obj:IsA("Sparkles") then
+        obj.Enabled = false
+    end
+
+    if obj:IsA("PointLight")
+    or obj:IsA("SpotLight")
+    or obj:IsA("SurfaceLight") then
+        obj.Enabled = false
+    end
+
+    if obj:IsA("Decal")
+    or obj:IsA("Texture")
+    or obj:IsA("SurfaceAppearance") then
+        obj.Transparency = 1
+    end
+
+    if obj:IsA("BasePart") then
+        obj.Material = Enum.Material.SmoothPlastic
+        obj.Reflectance = 0
+    end
+end
+
+-- =========================
+-- LIGHTWEIGHT FUTURE HOOK
+-- (Only for non-protected areas)
+-- =========================
+
+Workspace.DescendantAdded:Connect(function(obj)
+    
+    if isProtected(obj) then
+        return
+    end
     
     if obj:IsA("ParticleEmitter")
     or obj:IsA("Trail")
@@ -60,47 +125,8 @@ for _, obj in ipairs(Workspace:GetDescendants()) do
     if obj:IsA("Decal")
     or obj:IsA("Texture")
     or obj:IsA("SurfaceAppearance") then
-        obj:Destroy()
-    end
-end
-
--- =========================
--- SIMPLIFY MATERIALS (Visual Only)
--- =========================
-for _, part in ipairs(Workspace:GetDescendants()) do
-    if part:IsA("BasePart") then
-        part.Material = Enum.Material.SmoothPlastic
-        part.Reflectance = 0
-    end
-end
-
--- =========================
--- OPTIONAL: AUTO DISABLE FUTURE EFFECTS
--- (Lightweight hook, not heavy scanning)
--- =========================
-Workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("ParticleEmitter")
-    or obj:IsA("Trail")
-    or obj:IsA("Beam")
-    or obj:IsA("Smoke")
-    or obj:IsA("Fire")
-    or obj:IsA("Sparkles") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("PointLight")
-    or obj:IsA("SpotLight")
-    or obj:IsA("SurfaceLight") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("Decal")
-    or obj:IsA("Texture")
-    or obj:IsA("SurfaceAppearance") then
-        obj:Destroy()
+        obj.Transparency = 1
     end
 end)
 
-collectgarbage("collect")
-
-print("🥔 Potato Mode applied safely.")
+print("🥔 SAFE Potato Mode v2 applied.")

@@ -1,112 +1,14 @@
-local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-
--- 1. DISABLE 3D RENDERING (Biggest CPU saver)
-local success = pcall(function()
-    RunService:Set3dRenderingEnabled(false)
+-- 1. DISABLE 3D RENDERING
+pcall(function()
+    game:GetService("RunService"):Set3dRenderingEnabled(false)
 end)
-if success then print("✅ 3D rendering disabled") end
 
--- 2. CAP FPS TO 5 (Low CPU while keeping script responsive)
-success = pcall(function()
+-- 2. CAP FPS TO 5
+pcall(function()
     setfpscap(5)
 end)
-if success then print("✅ FPS capped to 5") end
 
--- 3. KILL ALL LIGHTING EFFECTS
+-- 3. DISABLE SHADOWS
 pcall(function()
-    Lighting.GlobalShadows = false
-    Lighting.FogEnd = 9e9
-    Lighting.Brightness = 0
-    Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
-    Lighting.Ambient = Color3.fromRGB(128, 128, 128)
-    
-    -- Remove post-effects that use CPU
-    for _, effect in ipairs(Lighting:GetChildren()) do
-        if effect:IsA("PostEffect") then
-            effect.Enabled = false
-        end
-    end
+    game:GetService("Lighting").GlobalShadows = false
 end)
-
--- 4. DESTROY VISUAL EFFECTS (Non-blocking, safer)
-task.spawn(function()
-    task.wait(2)  -- Wait for game to load
-    
-    local count = 0
-    pcall(function()
-        for _, v in ipairs(workspace:GetDescendants()) do
-            -- Skip Particles folder (needed for Thorn detection)
-            if v:IsDescendantOf(workspace:FindFirstChild("Particles") or Instance.new("Folder")) then
-                continue
-            end
-            
-            -- Disable particle effects
-            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or 
-               v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Beam") then
-                v.Enabled = false
-                count = count + 1
-            end
-            
-            -- Optimize parts (keep them but make them cheap to render)
-            if v:IsA("BasePart") and v.Name ~= "Thorn" then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-                v.CastShadow = false
-            end
-            
-            -- Hide textures
-            if v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            end
-        end
-    end)
-    print(string.format("✅ Disabled %d visual effects", count))
-end)
-
--- 5. DESTROY NON-ESSENTIAL UI (Wait for ViciousBeeHunterGUI to spawn first)
-task.spawn(function()
-    task.wait(3)  -- Wait longer to ensure your GUI spawns
-    
-    pcall(function()
-        local protected = {"ViciousBeeHunterGUI", "RobloxGui"}
-        
-        for _, gui in ipairs(CoreGui:GetChildren()) do
-            local isProtected = false
-            for _, name in ipairs(protected) do
-                if gui.Name == name then
-                    isProtected = true
-                    break
-                end
-            end
-            
-            if not isProtected then
-                pcall(function() gui:Destroy() end)
-            end
-        end
-    end)
-    print("✅ UI cleaned up")
-end)
-
--- 6. MOVE CAMERA AWAY (Reduces rendering load)
-pcall(function()
-    local camera = workspace.CurrentCamera
-    if camera then
-        camera.CameraType = Enum.CameraType.Scriptable
-        camera.CFrame = CFrame.new(0, 10000, 0)
-        camera.FieldOfView = 1  -- Smallest FOV = less to render
-    end
-end)
-
--- 7. REDUCE SIMULATION (Careful - not 0 to avoid errors)
-pcall(function()
-    local player = Players.LocalPlayer
-    if player then
-        player.MaximumSimulationRadius = 1  -- Minimal but not 0
-        player.SimulationRadius = 1
-    end
-end)
-
-print("✅ Graphics destroyed - CPU: ~0.5-1% per instance")

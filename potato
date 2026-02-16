@@ -1,4 +1,4 @@
--- 1. DISABLE 3D RENDERING
+-- 1. DISABLE 3D RENDERING (biggest CPU saver)
 pcall(function()
     game:GetService("RunService"):Set3dRenderingEnabled(false)
 end)
@@ -8,7 +8,12 @@ pcall(function()
     setfpscap(5)
 end)
 
--- 3. DISABLE SHADOWS
+-- 3. KILL LIGHTING (simple)
 pcall(function()
-    game:GetService("Lighting").GlobalShadows = false
+    local Lighting = game:GetService("Lighting")
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
 end)
+
+-- That's it. Nothing else.
+print("✅ Graphics minimized")

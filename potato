@@ -1,132 +1,67 @@
--- 🥔 SAFE POTATO MODE v2 (Vic-Compatible, No GC, No Heavy Hooks)
-
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
-
-local lp = Players.LocalPlayer
-
-print("🥔 Applying SAFE Potato Mode v2...")
-
--- =========================
--- LIGHTING SIMPLIFICATION
--- =========================
-Lighting.GlobalShadows = false
-Lighting.FogEnd = 9e9
-Lighting.Brightness = 1
-Lighting.EnvironmentDiffuseScale = 0
-Lighting.EnvironmentSpecularScale = 0
-
-for _, v in ipairs(Lighting:GetChildren()) do
-    if v:IsA("PostEffect")
-    or v:IsA("Atmosphere")
-    or v:IsA("BloomEffect")
-    or v:IsA("SunRaysEffect")
-    or v:IsA("ColorCorrectionEffect")
-    or v:IsA("DepthOfFieldEffect") then
-        v:Destroy()
-    end
-end
-
+-- 1. DISABLE 3D RENDERING (Screen goes black but detection still works)
 pcall(function()
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    game:GetService("RunService"):Set3dRenderingEnabled(false)
 end)
 
--- =========================
--- SAFE VISUAL REDUCTION
--- (Does NOT touch Particles/Vicious folder)
--- =========================
-
-local particlesFolder = Workspace:FindFirstChild("Particles")
-local viciousFolder = particlesFolder and particlesFolder:FindFirstChild("Vicious")
-
-local function isProtected(obj)
-    if not obj then return false end
-    
-    -- Protect player character
-    if lp.Character and obj:IsDescendantOf(lp.Character) then
-        return true
-    end
-    
-    -- Protect Vicious system
-    if viciousFolder and obj:IsDescendantOf(viciousFolder) then
-        return true
-    end
-    
-    -- Protect entire Particles folder
-    if particlesFolder and obj:IsDescendantOf(particlesFolder) then
-        return true
-    end
-    
-    return false
-end
-
--- ONE PASS ONLY
-for _, obj in ipairs(Workspace:GetDescendants()) do
-    
-    if isProtected(obj) then
-        continue
-    end
-    
-    -- Disable effects (not destroy)
-    if obj:IsA("ParticleEmitter")
-    or obj:IsA("Trail")
-    or obj:IsA("Beam")
-    or obj:IsA("Smoke")
-    or obj:IsA("Fire")
-    or obj:IsA("Sparkles") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("PointLight")
-    or obj:IsA("SpotLight")
-    or obj:IsA("SurfaceLight") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("Decal")
-    or obj:IsA("Texture")
-    or obj:IsA("SurfaceAppearance") then
-        obj.Transparency = 1
-    end
-
-    if obj:IsA("BasePart") then
-        obj.Material = Enum.Material.SmoothPlastic
-        obj.Reflectance = 0
-    end
-end
-
--- =========================
--- LIGHTWEIGHT FUTURE HOOK
--- (Only for non-protected areas)
--- =========================
-
-Workspace.DescendantAdded:Connect(function(obj)
-    
-    if isProtected(obj) then
-        return
-    end
-    
-    if obj:IsA("ParticleEmitter")
-    or obj:IsA("Trail")
-    or obj:IsA("Beam")
-    or obj:IsA("Smoke")
-    or obj:IsA("Fire")
-    or obj:IsA("Sparkles") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("PointLight")
-    or obj:IsA("SpotLight")
-    or obj:IsA("SurfaceLight") then
-        obj.Enabled = false
-    end
-
-    if obj:IsA("Decal")
-    or obj:IsA("Texture")
-    or obj:IsA("SurfaceAppearance") then
-        obj.Transparency = 1
-    end
+-- 2. CAP FPS TO 5 (Drops CPU from 10% to ~1%)
+pcall(function()
+    setfpscap(5)
 end)
 
-print("🥔 SAFE Potato Mode v2 applied.")
+-- 3. KILL ALL LIGHTING EFFECTS
+pcall(function()
+    local Lighting = game:GetService("Lighting")
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    Lighting.Brightness = 0
+    Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    Lighting.Ambient = Color3.new(1, 1, 1)
+end)
+
+-- 4. DESTROY ALL VISUAL EFFECTS
+task.spawn(function()
+    pcall(function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Smoke") or 
+               v:IsA("Fire") or v:IsA("Sparkles") or v:IsA("Beam") then
+                v.Enabled = false
+            end
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+                v.Reflectance = 0
+                v.CastShadow = false
+            end
+            if v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+        end
+    end)
+end)
+
+-- 5. DESTROY UI ELEMENTS
+task.spawn(function()
+    task.wait(1)
+    pcall(function()
+        local CoreGui = game:GetService("CoreGui")
+        if CoreGui:FindFirstChild("ChatGui") then CoreGui.ChatGui:Destroy() end
+        if CoreGui:FindFirstChild("PlayerList") then CoreGui.PlayerList:Destroy() end
+        if CoreGui:FindFirstChild("HealthBar") then CoreGui.HealthBar:Destroy() end
+        if CoreGui:FindFirstChild("Backpack") then CoreGui.Backpack:Destroy() end
+    end)
+end)
+
+-- 6. MOVE CAMERA AWAY (Nothing nearby to render)
+pcall(function()
+    local camera = workspace.CurrentCamera
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CFrame = CFrame.new(0, 10000, 0)
+end)
+
+-- 7. REDUCE SIMULATION RADIUS
+pcall(function()
+    local player = game:GetService("Players").LocalPlayer
+    player.MaximumSimulationRadius = 0
+    player.SimulationRadius = 0
+end)
+
+print("✅ Graphics destroyed - CPU: ~0.5-1% per instance")

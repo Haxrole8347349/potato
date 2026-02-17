@@ -1,5 +1,6 @@
--- Error-Free FPS Booster (Vicious Bee Safe)
--- No ads, no fps cap, no property errors
+-- FINAL Safe FPS Booster
+-- No RenderFidelity, no MeshPart edits, no SolidModel errors
+-- Fully safe for Vicious Bee script
 
 if not game:IsLoaded() then
     repeat task.wait() until game:IsLoaded()
@@ -12,18 +13,28 @@ local Terrain = workspace:FindFirstChildOfClass("Terrain")
 local LocalPlayer = Players.LocalPlayer
 
 --------------------------------------------------
--- SAFE LIGHTING OPTIMIZATION
+-- LIGHTING OPTIMIZATION (SAFE)
 --------------------------------------------------
 
 pcall(function()
     Lighting.GlobalShadows = false
     Lighting.FogEnd = 9e9
-    Lighting.Brightness = 1
-    Lighting.ClockTime = 12
+
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v:IsA("PostEffect")
+        or v:IsA("BloomEffect")
+        or v:IsA("SunRaysEffect")
+        or v:IsA("ColorCorrectionEffect")
+        or v:IsA("BlurEffect")
+        or v:IsA("DepthOfFieldEffect") then
+
+            v.Enabled = false
+        end
+    end
 end)
 
 --------------------------------------------------
--- SAFE WATER OPTIMIZATION
+-- WATER OPTIMIZATION (SAFE)
 --------------------------------------------------
 
 if Terrain then
@@ -36,26 +47,14 @@ if Terrain then
 end
 
 --------------------------------------------------
--- DISABLE ALL POST PROCESSING
+-- SAFE OPTIMIZER
 --------------------------------------------------
 
-for _, v in ipairs(Lighting:GetChildren()) do
-    if v:IsA("PostEffect") then
-        pcall(function()
-            v.Enabled = false
-        end)
-    end
-end
-
---------------------------------------------------
--- SAFE INSTANCE OPTIMIZER
---------------------------------------------------
-
-local function SafeOptimize(inst)
+local function Optimize(inst)
 
     if not inst then return end
 
-    -- NEVER TOUCH PLAYER
+    -- NEVER TOUCH PLAYER CHARACTER
     if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
         return
     end
@@ -65,7 +64,7 @@ local function SafeOptimize(inst)
         return
     end
 
-    -- SAFE PARTICLE DISABLE
+    -- DISABLE PARTICLES ONLY (SAFE)
     if inst:IsA("ParticleEmitter")
     or inst:IsA("Trail")
     or inst:IsA("Smoke")
@@ -76,9 +75,10 @@ local function SafeOptimize(inst)
             inst.Enabled = false
         end)
 
+        return
     end
 
-    -- SAFE POST EFFECT DISABLE
+    -- DISABLE POST EFFECTS ONLY
     if inst:IsA("PostEffect")
     or inst:IsA("BloomEffect")
     or inst:IsA("SunRaysEffect")
@@ -90,25 +90,29 @@ local function SafeOptimize(inst)
             inst.Enabled = false
         end)
 
+        return
     end
 
-    -- SAFE EXPLOSION DISABLE
+    -- SAFE EXPLOSION REDUCE
     if inst:IsA("Explosion") then
+
         pcall(function()
             inst.Visible = false
             inst.BlastPressure = 0
             inst.BlastRadius = 0
         end)
+
+        return
     end
 
 end
 
 --------------------------------------------------
--- APPLY TO EXISTING INSTANCES
+-- APPLY TO ALL CURRENT INSTANCES
 --------------------------------------------------
 
 for _, inst in ipairs(game:GetDescendants()) do
-    SafeOptimize(inst)
+    Optimize(inst)
 end
 
 --------------------------------------------------
@@ -117,20 +121,5 @@ end
 
 game.DescendantAdded:Connect(function(inst)
     task.wait(0.1)
-    SafeOptimize(inst)
+    Optimize(inst)
 end)
-
---------------------------------------------------
--- MEMORY CLEANER
---------------------------------------------------
-
-task.spawn(function()
-    while true do
-        task.wait(60)
-        pcall(function()
-            collectgarbage("collect")
-        end)
-    end
-end)
-
---------------------------------------------------

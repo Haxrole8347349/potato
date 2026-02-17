@@ -1,5 +1,5 @@
--- Clean FPS Booster (Vicious Bee Safe Version)
--- No ads, no notifications, no FPS cap/uncap
+-- Max FPS Booster (Vicious Bee Safe)
+-- Clean version, no ads, no fps cap, no unsafe changes
 
 if not game:IsLoaded() then
     repeat task.wait() until game:IsLoaded()
@@ -12,6 +12,10 @@ local Terrain = workspace:FindFirstChildOfClass("Terrain")
 
 local LocalPlayer = Players.LocalPlayer
 
+---------------------------------------------------
+-- SETTINGS
+---------------------------------------------------
+
 local Settings = {
 
     LowWaterGraphics = true,
@@ -20,122 +24,212 @@ local Settings = {
     ResetMaterials = true,
 
     DisableParticles = true,
+    DisablePostEffects = true,
+    DisableExplosions = true,
+
     LowQualityParts = true,
     LowQualityMeshParts = true,
-
-    DisablePostEffects = true,
     LowTextQuality = true,
+
 }
 
 ---------------------------------------------------
--- WATER
+-- WATER OPTIMIZATION
 ---------------------------------------------------
 
 if Settings.LowWaterGraphics and Terrain then
-    Terrain.WaterWaveSize = 0
-    Terrain.WaterWaveSpeed = 0
-    Terrain.WaterReflectance = 0
-    Terrain.WaterTransparency = 0
 
-    if sethiddenproperty then
-        pcall(function()
+    pcall(function()
+        Terrain.WaterWaveSize = 0
+        Terrain.WaterWaveSpeed = 0
+        Terrain.WaterReflectance = 0
+        Terrain.WaterTransparency = 0
+
+        if sethiddenproperty then
             sethiddenproperty(Terrain, "Decoration", false)
-        end)
-    end
+        end
+    end)
+
 end
 
 ---------------------------------------------------
--- SHADOWS
+-- SHADOW OPTIMIZATION
 ---------------------------------------------------
 
 if Settings.NoShadows then
-    Lighting.GlobalShadows = false
-    Lighting.ShadowSoftness = 0
-    Lighting.FogEnd = 9e9
 
-    if sethiddenproperty then
-        pcall(function()
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.ShadowSoftness = 0
+        Lighting.FogEnd = 9e9
+
+        if sethiddenproperty then
             sethiddenproperty(Lighting, "Technology", Enum.Technology.Compatibility)
-        end)
-    end
+        end
+    end)
+
 end
 
 ---------------------------------------------------
--- RENDER QUALITY
+-- RENDER SETTINGS
 ---------------------------------------------------
 
 if Settings.LowRendering then
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-    settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+
+    pcall(function()
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+        settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+    end)
+
 end
 
 ---------------------------------------------------
--- MATERIAL RESET
+-- RESET MATERIALS
 ---------------------------------------------------
 
 if Settings.ResetMaterials then
-    for _, v in pairs(MaterialService:GetChildren()) do
-        pcall(function()
-            v:Destroy()
-        end)
-    end
 
-    MaterialService.Use2022Materials = false
+    pcall(function()
+        for _, v in pairs(MaterialService:GetChildren()) do
+            v:Destroy()
+        end
+
+        MaterialService.Use2022Materials = false
+    end)
+
 end
 
 ---------------------------------------------------
--- OPTIMIZER
+-- MAIN OPTIMIZER
 ---------------------------------------------------
 
 local function Optimize(inst)
 
+    if not inst then return end
+
+    -- NEVER TOUCH PLAYER CHARACTER
     if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
         return
     end
 
+    -- NEVER TOUCH VICIOUS BEE THORNS
     if inst.Name == "Thorn" then
         return
     end
 
+    ---------------------------------------------------
+    -- PARTICLES
+    ---------------------------------------------------
+
     if Settings.DisableParticles then
+
         if inst:IsA("ParticleEmitter")
         or inst:IsA("Trail")
         or inst:IsA("Smoke")
         or inst:IsA("Fire")
         or inst:IsA("Sparkles") then
 
-            inst.Enabled = false
+            pcall(function()
+                inst.Enabled = false
+            end)
+
         end
+
     end
 
-    if Settings.DisablePostEffects and inst:IsA("PostEffect") then
-        inst.Enabled = false
+    ---------------------------------------------------
+    -- POST EFFECTS
+    ---------------------------------------------------
+
+    if Settings.DisablePostEffects then
+
+        if inst:IsA("PostEffect")
+        or inst:IsA("BloomEffect")
+        or inst:IsA("SunRaysEffect")
+        or inst:IsA("ColorCorrectionEffect")
+        or inst:IsA("BlurEffect")
+        or inst:IsA("DepthOfFieldEffect") then
+
+            pcall(function()
+                inst.Enabled = false
+            end)
+
+        end
+
     end
+
+    ---------------------------------------------------
+    -- EXPLOSIONS
+    ---------------------------------------------------
+
+    if Settings.DisableExplosions and inst:IsA("Explosion") then
+
+        pcall(function()
+            inst.BlastPressure = 0
+            inst.BlastRadius = 0
+            inst.Visible = false
+        end)
+
+    end
+
+    ---------------------------------------------------
+    -- BASEPART OPTIMIZATION
+    ---------------------------------------------------
 
     if Settings.LowQualityParts and inst:IsA("BasePart") and not inst:IsA("MeshPart") then
-        inst.Material = Enum.Material.Plastic
-        inst.Reflectance = 0
+
+        pcall(function()
+            inst.Material = Enum.Material.Plastic
+            inst.Reflectance = 0
+        end)
+
     end
+
+    ---------------------------------------------------
+    -- MESHPART OPTIMIZATION (SAFE VERSION)
+    ---------------------------------------------------
 
     if Settings.LowQualityMeshParts and inst:IsA("MeshPart") then
-        inst.Material = Enum.Material.Plastic
-        inst.Reflectance = 0
-        inst.RenderFidelity = Enum.RenderFidelity.Performance
+
+        pcall(function()
+            inst.Material = Enum.Material.Plastic
+            inst.Reflectance = 0
+        end)
+
     end
+
+    ---------------------------------------------------
+    -- TEXT OPTIMIZATION
+    ---------------------------------------------------
 
     if Settings.LowTextQuality and inst:IsA("TextLabel") then
-        inst.Font = Enum.Font.SourceSans
-        inst.TextSize = 14
-        inst.RichText = false
+
+        pcall(function()
+            inst.Font = Enum.Font.SourceSans
+            inst.TextSize = 14
+            inst.RichText = false
+        end)
+
     end
 
 end
 
-for _, v in ipairs(game:GetDescendants()) do
-    Optimize(v)
+---------------------------------------------------
+-- OPTIMIZE EXISTING INSTANCES
+---------------------------------------------------
+
+for _, inst in ipairs(game:GetDescendants()) do
+    Optimize(inst)
 end
 
+---------------------------------------------------
+-- OPTIMIZE NEW INSTANCES
+---------------------------------------------------
+
 game.DescendantAdded:Connect(function(inst)
-    task.wait(0.5)
+
+    task.wait(0.2)
+
     Optimize(inst)
+
 end)

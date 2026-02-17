@@ -1,5 +1,5 @@
--- Max FPS Booster (Vicious Bee Safe)
--- Clean version, no ads, no fps cap, no unsafe changes
+-- Error-Free FPS Booster (Vicious Bee Safe)
+-- No ads, no fps cap, no property errors
 
 if not game:IsLoaded() then
     repeat task.wait() until game:IsLoaded()
@@ -7,229 +7,130 @@ end
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
-local MaterialService = game:GetService("MaterialService")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 
 local LocalPlayer = Players.LocalPlayer
 
----------------------------------------------------
--- SETTINGS
----------------------------------------------------
+--------------------------------------------------
+-- SAFE LIGHTING OPTIMIZATION
+--------------------------------------------------
 
-local Settings = {
+pcall(function()
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    Lighting.Brightness = 1
+    Lighting.ClockTime = 12
+end)
 
-    LowWaterGraphics = true,
-    NoShadows = true,
-    LowRendering = true,
-    ResetMaterials = true,
+--------------------------------------------------
+-- SAFE WATER OPTIMIZATION
+--------------------------------------------------
 
-    DisableParticles = true,
-    DisablePostEffects = true,
-    DisableExplosions = true,
-
-    LowQualityParts = true,
-    LowQualityMeshParts = true,
-    LowTextQuality = true,
-
-}
-
----------------------------------------------------
--- WATER OPTIMIZATION
----------------------------------------------------
-
-if Settings.LowWaterGraphics and Terrain then
-
+if Terrain then
     pcall(function()
         Terrain.WaterWaveSize = 0
         Terrain.WaterWaveSpeed = 0
         Terrain.WaterReflectance = 0
         Terrain.WaterTransparency = 0
-
-        if sethiddenproperty then
-            sethiddenproperty(Terrain, "Decoration", false)
-        end
     end)
-
 end
 
----------------------------------------------------
--- SHADOW OPTIMIZATION
----------------------------------------------------
+--------------------------------------------------
+-- DISABLE ALL POST PROCESSING
+--------------------------------------------------
 
-if Settings.NoShadows then
-
-    pcall(function()
-        Lighting.GlobalShadows = false
-        Lighting.ShadowSoftness = 0
-        Lighting.FogEnd = 9e9
-
-        if sethiddenproperty then
-            sethiddenproperty(Lighting, "Technology", Enum.Technology.Compatibility)
-        end
-    end)
-
+for _, v in ipairs(Lighting:GetChildren()) do
+    if v:IsA("PostEffect") then
+        pcall(function()
+            v.Enabled = false
+        end)
+    end
 end
 
----------------------------------------------------
--- RENDER SETTINGS
----------------------------------------------------
+--------------------------------------------------
+-- SAFE INSTANCE OPTIMIZER
+--------------------------------------------------
 
-if Settings.LowRendering then
-
-    pcall(function()
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-        settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
-    end)
-
-end
-
----------------------------------------------------
--- RESET MATERIALS
----------------------------------------------------
-
-if Settings.ResetMaterials then
-
-    pcall(function()
-        for _, v in pairs(MaterialService:GetChildren()) do
-            v:Destroy()
-        end
-
-        MaterialService.Use2022Materials = false
-    end)
-
-end
-
----------------------------------------------------
--- MAIN OPTIMIZER
----------------------------------------------------
-
-local function Optimize(inst)
+local function SafeOptimize(inst)
 
     if not inst then return end
 
-    -- NEVER TOUCH PLAYER CHARACTER
+    -- NEVER TOUCH PLAYER
     if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
         return
     end
 
-    -- NEVER TOUCH VICIOUS BEE THORNS
+    -- NEVER TOUCH VICIOUS BEE THORN
     if inst.Name == "Thorn" then
         return
     end
 
-    ---------------------------------------------------
-    -- PARTICLES
-    ---------------------------------------------------
-
-    if Settings.DisableParticles then
-
-        if inst:IsA("ParticleEmitter")
-        or inst:IsA("Trail")
-        or inst:IsA("Smoke")
-        or inst:IsA("Fire")
-        or inst:IsA("Sparkles") then
-
-            pcall(function()
-                inst.Enabled = false
-            end)
-
-        end
-
-    end
-
-    ---------------------------------------------------
-    -- POST EFFECTS
-    ---------------------------------------------------
-
-    if Settings.DisablePostEffects then
-
-        if inst:IsA("PostEffect")
-        or inst:IsA("BloomEffect")
-        or inst:IsA("SunRaysEffect")
-        or inst:IsA("ColorCorrectionEffect")
-        or inst:IsA("BlurEffect")
-        or inst:IsA("DepthOfFieldEffect") then
-
-            pcall(function()
-                inst.Enabled = false
-            end)
-
-        end
-
-    end
-
-    ---------------------------------------------------
-    -- EXPLOSIONS
-    ---------------------------------------------------
-
-    if Settings.DisableExplosions and inst:IsA("Explosion") then
+    -- SAFE PARTICLE DISABLE
+    if inst:IsA("ParticleEmitter")
+    or inst:IsA("Trail")
+    or inst:IsA("Smoke")
+    or inst:IsA("Fire")
+    or inst:IsA("Sparkles") then
 
         pcall(function()
+            inst.Enabled = false
+        end)
+
+    end
+
+    -- SAFE POST EFFECT DISABLE
+    if inst:IsA("PostEffect")
+    or inst:IsA("BloomEffect")
+    or inst:IsA("SunRaysEffect")
+    or inst:IsA("BlurEffect")
+    or inst:IsA("ColorCorrectionEffect")
+    or inst:IsA("DepthOfFieldEffect") then
+
+        pcall(function()
+            inst.Enabled = false
+        end)
+
+    end
+
+    -- SAFE EXPLOSION DISABLE
+    if inst:IsA("Explosion") then
+        pcall(function()
+            inst.Visible = false
             inst.BlastPressure = 0
             inst.BlastRadius = 0
-            inst.Visible = false
         end)
-
-    end
-
-    ---------------------------------------------------
-    -- BASEPART OPTIMIZATION
-    ---------------------------------------------------
-
-    if Settings.LowQualityParts and inst:IsA("BasePart") and not inst:IsA("MeshPart") then
-
-        pcall(function()
-            inst.Material = Enum.Material.Plastic
-            inst.Reflectance = 0
-        end)
-
-    end
-
-    ---------------------------------------------------
-    -- MESHPART OPTIMIZATION (SAFE VERSION)
-    ---------------------------------------------------
-
-    if Settings.LowQualityMeshParts and inst:IsA("MeshPart") then
-
-        pcall(function()
-            inst.Material = Enum.Material.Plastic
-            inst.Reflectance = 0
-        end)
-
-    end
-
-    ---------------------------------------------------
-    -- TEXT OPTIMIZATION
-    ---------------------------------------------------
-
-    if Settings.LowTextQuality and inst:IsA("TextLabel") then
-
-        pcall(function()
-            inst.Font = Enum.Font.SourceSans
-            inst.TextSize = 14
-            inst.RichText = false
-        end)
-
     end
 
 end
 
----------------------------------------------------
--- OPTIMIZE EXISTING INSTANCES
----------------------------------------------------
+--------------------------------------------------
+-- APPLY TO EXISTING INSTANCES
+--------------------------------------------------
 
 for _, inst in ipairs(game:GetDescendants()) do
-    Optimize(inst)
+    SafeOptimize(inst)
 end
 
----------------------------------------------------
--- OPTIMIZE NEW INSTANCES
----------------------------------------------------
+--------------------------------------------------
+-- APPLY TO NEW INSTANCES
+--------------------------------------------------
 
 game.DescendantAdded:Connect(function(inst)
-
-    task.wait(0.2)
-
-    Optimize(inst)
-
+    task.wait(0.1)
+    SafeOptimize(inst)
 end)
+
+--------------------------------------------------
+-- MEMORY CLEANER
+--------------------------------------------------
+
+task.spawn(function()
+    while true do
+        task.wait(60)
+        pcall(function()
+            collectgarbage("collect")
+        end)
+    end
+end)
+
+--------------------------------------------------

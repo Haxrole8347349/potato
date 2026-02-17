@@ -1,9 +1,141 @@
-setfpscap(5)
+-- Clean FPS Booster (Vicious Bee Safe Version)
+-- No ads, no notifications, no FPS cap/uncap
 
-pcall(function()
-    game:GetService("RunService"):Set3dRenderingEnabled(false)
-end)
+if not game:IsLoaded() then
+    repeat task.wait() until game:IsLoaded()
+end
 
-pcall(function()
-    game:GetService("Lighting").GlobalShadows = false
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local MaterialService = game:GetService("MaterialService")
+local Terrain = workspace:FindFirstChildOfClass("Terrain")
+
+local LocalPlayer = Players.LocalPlayer
+
+local Settings = {
+
+    LowWaterGraphics = true,
+    NoShadows = true,
+    LowRendering = true,
+    ResetMaterials = true,
+
+    DisableParticles = true,
+    LowQualityParts = true,
+    LowQualityMeshParts = true,
+
+    DisablePostEffects = true,
+    LowTextQuality = true,
+}
+
+---------------------------------------------------
+-- WATER
+---------------------------------------------------
+
+if Settings.LowWaterGraphics and Terrain then
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 0
+
+    if sethiddenproperty then
+        pcall(function()
+            sethiddenproperty(Terrain, "Decoration", false)
+        end)
+    end
+end
+
+---------------------------------------------------
+-- SHADOWS
+---------------------------------------------------
+
+if Settings.NoShadows then
+    Lighting.GlobalShadows = false
+    Lighting.ShadowSoftness = 0
+    Lighting.FogEnd = 9e9
+
+    if sethiddenproperty then
+        pcall(function()
+            sethiddenproperty(Lighting, "Technology", Enum.Technology.Compatibility)
+        end)
+    end
+end
+
+---------------------------------------------------
+-- RENDER QUALITY
+---------------------------------------------------
+
+if Settings.LowRendering then
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    settings().Rendering.MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+end
+
+---------------------------------------------------
+-- MATERIAL RESET
+---------------------------------------------------
+
+if Settings.ResetMaterials then
+    for _, v in pairs(MaterialService:GetChildren()) do
+        pcall(function()
+            v:Destroy()
+        end)
+    end
+
+    MaterialService.Use2022Materials = false
+end
+
+---------------------------------------------------
+-- OPTIMIZER
+---------------------------------------------------
+
+local function Optimize(inst)
+
+    if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
+        return
+    end
+
+    if inst.Name == "Thorn" then
+        return
+    end
+
+    if Settings.DisableParticles then
+        if inst:IsA("ParticleEmitter")
+        or inst:IsA("Trail")
+        or inst:IsA("Smoke")
+        or inst:IsA("Fire")
+        or inst:IsA("Sparkles") then
+
+            inst.Enabled = false
+        end
+    end
+
+    if Settings.DisablePostEffects and inst:IsA("PostEffect") then
+        inst.Enabled = false
+    end
+
+    if Settings.LowQualityParts and inst:IsA("BasePart") and not inst:IsA("MeshPart") then
+        inst.Material = Enum.Material.Plastic
+        inst.Reflectance = 0
+    end
+
+    if Settings.LowQualityMeshParts and inst:IsA("MeshPart") then
+        inst.Material = Enum.Material.Plastic
+        inst.Reflectance = 0
+        inst.RenderFidelity = Enum.RenderFidelity.Performance
+    end
+
+    if Settings.LowTextQuality and inst:IsA("TextLabel") then
+        inst.Font = Enum.Font.SourceSans
+        inst.TextSize = 14
+        inst.RichText = false
+    end
+
+end
+
+for _, v in ipairs(game:GetDescendants()) do
+    Optimize(v)
+end
+
+game.DescendantAdded:Connect(function(inst)
+    task.wait(0.5)
+    Optimize(inst)
 end)

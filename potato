@@ -1,6 +1,6 @@
--- FINAL Safe FPS Booster
--- No RenderFidelity, no MeshPart edits, no SolidModel errors
--- Fully safe for Vicious Bee script
+-- FINAL Safe FPS Booster + COMPLETE RENDERING DISABLE
+-- White screen mode for maximum performance
+-- Script still works, just no visuals
 
 if not game:IsLoaded() then
     repeat task.wait() until game:IsLoaded()
@@ -9,8 +9,37 @@ end
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
+
+--------------------------------------------------
+-- COMPLETE RENDERING DISABLE (WHITE SCREEN MODE)
+--------------------------------------------------
+
+local camera = workspace.CurrentCamera
+
+-- Disconnect all rendering
+pcall(function()
+    RunService:Set3dRenderingEnabled(false)
+end)
+
+-- Backup method - make camera unusable
+pcall(function()
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CFrame = CFrame.new(0, 999999, 0)
+end)
+
+-- Make everything invisible
+pcall(function()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.LocalTransparencyModifier = 1
+        end
+    end
+end)
+
+print("✅ Rendering completely disabled - White screen mode active")
 
 --------------------------------------------------
 -- LIGHTING OPTIMIZATION (SAFE)
@@ -99,7 +128,7 @@ local function Optimize(inst)
         pcall(function()
             inst.Visible = false
             inst.BlastPressure = 0
-            inst.BlastRadius = 0
+            BlastRadius = 0
         end)
 
         return
@@ -123,3 +152,5 @@ game.DescendantAdded:Connect(function(inst)
     task.wait(0.1)
     Optimize(inst)
 end)
+
+print("✅ FPS Booster loaded - Maximum performance mode")

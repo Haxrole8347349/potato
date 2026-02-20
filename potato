@@ -286,22 +286,6 @@ else
     print("✅ Standalone reconnect system enabled")
 end
 
--- ═══════════════════════════════════════════════════════════════
--- MEMORY OPTIMIZATION
--- ═══════════════════════════════════════════════════════════════
-
--- Clear memory garbage periodically
-task.spawn(function()
-    while true do
-        task.wait(60) -- Every minute
-        pcall(function()
-            -- Force garbage collection
-            for i = 1, 10 do
-                collectgarbage("collect")
-            end
-        end)
-    end
-end)
 
 print("✅ Memory optimization active")
 print("═══════════════════════════════════════════════════════════")

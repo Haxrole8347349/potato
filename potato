@@ -1,44 +1,31 @@
 -- ═══════════════════════════════════════════════════════════════
--- COMPLETE RENDERING DISABLE + DISCONNECT DETECTOR
--- White screen mode for maximum performance
--- Integrated with Vicious Bee Hunter script
+-- MINIMAL FPS BOOSTER - RENDERING DISABLE ONLY
+-- No reconnect, no interference
 -- ═══════════════════════════════════════════════════════════════
 
--- Wait for game to fully load
 if not game:IsLoaded() then
     repeat task.wait() until game:IsLoaded()
 end
 
-local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local Terrain = workspace:FindFirstChildOfClass("Terrain")
 local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local GuiService = game:GetService("GuiService")
-local CoreGui = game:GetService("CoreGui")
 
-local LocalPlayer = Players.LocalPlayer
+print("🚀 Minimal FPS Booster loading...")
 
-print("🚀 Ultra-low performance mode initializing...")
-
--- ═══════════════════════════════════════════════════════════════
--- COMPLETE RENDERING DISABLE (WHITE SCREEN MODE)
--- ═══════════════════════════════════════════════════════════════
-
-local camera = workspace.CurrentCamera
-
--- Method 1: Disable 3D rendering completely
+-- Disable 3D rendering
 pcall(function()
     RunService:Set3dRenderingEnabled(false)
 end)
 
--- Method 2: Make camera unusable (backup)
+-- Nuke camera
 pcall(function()
+    local camera = workspace.CurrentCamera
     camera.CameraType = Enum.CameraType.Scriptable
     camera.CFrame = CFrame.new(0, 999999, 0)
 end)
 
--- Method 3: Make everything invisible
+-- One-time transparency pass
 pcall(function()
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
@@ -47,43 +34,21 @@ pcall(function()
     end
 end)
 
--- Keep new parts invisible
-workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("BasePart") then
-        task.wait()
-        pcall(function()
-            obj.LocalTransparencyModifier = 1
-        end)
-    end
-end)
-
-print("✅ Rendering completely disabled - White screen mode active")
-
--- ═══════════════════════════════════════════════════════════════
--- LIGHTING OPTIMIZATION (SAFE)
--- ═══════════════════════════════════════════════════════════════
-
+-- Lighting optimization
 pcall(function()
     Lighting.GlobalShadows = false
     Lighting.FogEnd = 9e9
-
+    
     for _, v in pairs(Lighting:GetChildren()) do
-        if v:IsA("PostEffect")
-        or v:IsA("BloomEffect")
-        or v:IsA("SunRaysEffect")
-        or v:IsA("ColorCorrectionEffect")
-        or v:IsA("BlurEffect")
-        or v:IsA("DepthOfFieldEffect") then
-
+        if v:IsA("PostEffect") or v:IsA("BloomEffect") or 
+           v:IsA("SunRaysEffect") or v:IsA("ColorCorrectionEffect") or 
+           v:IsA("BlurEffect") or v:IsA("DepthOfFieldEffect") then
             v.Enabled = false
         end
     end
 end)
 
--- ═══════════════════════════════════════════════════════════════
--- WATER OPTIMIZATION (SAFE)
--- ═══════════════════════════════════════════════════════════════
-
+-- Water optimization
 if Terrain then
     pcall(function()
         Terrain.WaterWaveSize = 0
@@ -92,202 +57,3 @@ if Terrain then
         Terrain.WaterTransparency = 0
     end)
 end
-
--- ═══════════════════════════════════════════════════════════════
--- SAFE OPTIMIZER FUNCTION
--- ═══════════════════════════════════════════════════════════════
-
-local function Optimize(inst)
-
-    if not inst then return end
-
-    -- NEVER TOUCH PLAYER CHARACTER
-    if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
-        return
-    end
-
-    -- NEVER TOUCH VICIOUS BEE THORN (CRITICAL!)
-    if inst.Name == "Thorn" then
-        return
-    end
-
-    -- NEVER TOUCH PARTICLES FOLDER (where Thorns spawn)
-    if inst.Name == "Particles" and inst:IsA("Folder") then
-        return
-    end
-
-    -- DISABLE PARTICLES ONLY (SAFE)
-    if inst:IsA("ParticleEmitter")
-    or inst:IsA("Trail")
-    or inst:IsA("Smoke")
-    or inst:IsA("Fire")
-    or inst:IsA("Sparkles") then
-
-        pcall(function()
-            inst.Enabled = false
-        end)
-
-        return
-    end
-
-    -- DISABLE POST EFFECTS ONLY
-    if inst:IsA("PostEffect")
-    or inst:IsA("BloomEffect")
-    or inst:IsA("SunRaysEffect")
-    or inst:IsA("BlurEffect")
-    or inst:IsA("ColorCorrectionEffect")
-    or inst:IsA("DepthOfFieldEffect") then
-
-        pcall(function()
-            inst.Enabled = false
-        end)
-
-        return
-    end
-
-    -- SAFE EXPLOSION REDUCE
-    if inst:IsA("Explosion") then
-
-        pcall(function()
-            inst.Visible = false
-            inst.BlastPressure = 0
-            inst.BlastRadius = 0
-        end)
-
-        return
-    end
-
-end
-
--- ═══════════════════════════════════════════════════════════════
--- APPLY TO ALL CURRENT INSTANCES
--- ═══════════════════════════════════════════════════════════════
-
-for _, inst in ipairs(game:GetDescendants()) do
-    Optimize(inst)
-end
-
--- ═══════════════════════════════════════════════════════════════
--- APPLY TO NEW INSTANCES
--- ═══════════════════════════════════════════════════════════════
-
-game.DescendantAdded:Connect(function(inst)
-    task.wait(0.1)
-    Optimize(inst)
-end)
-
-print("✅ FPS Booster loaded - Maximum performance mode")
-
--- ═══════════════════════════════════════════════════════════════
--- AUTO-RECONNECT SYSTEM (COMPATIBLE WITH VICIOUS BEE SCRIPT)
--- ═══════════════════════════════════════════════════════════════
-
--- Check if Vicious Bee script already has reconnect system
-if _G.ViciousBeeHunterActive then
-    print("✅ Vicious Bee script detected - Using its reconnect system")
-else
-    print("⚠️ Running standalone - Initializing reconnect system")
-    
-    local currentPlaceId = game.PlaceId
-    local currentJobId = game.JobId
-    local isReconnecting = false
-    
-    local function attemptRejoin(reason)
-        if isReconnecting then return end
-        isReconnecting = true
-        
-        print(string.format("🔄 Auto-reconnecting: %s", reason))
-        
-        task.wait(2)
-        
-        -- Try to rejoin the same server
-        pcall(function()
-            TeleportService:TeleportToPlaceInstance(currentPlaceId, currentJobId, LocalPlayer)
-        end)
-        
-        task.wait(5)
-        
-        -- If still here, try any server
-        pcall(function()
-            TeleportService:Teleport(currentPlaceId, LocalPlayer)
-        end)
-    end
-    
-    -- Handle teleport failures
-    TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
-        local reason = "Teleport Failed"
-        if teleportResult == Enum.TeleportResult.Failure then
-            reason = "Teleport Failure: " .. tostring(errorMessage)
-        elseif teleportResult == Enum.TeleportResult.GameNotFound then
-            reason = "Game Not Found"
-        elseif teleportResult == Enum.TeleportResult.GameEnded then
-            reason = "Game Ended"
-        elseif teleportResult == Enum.TeleportResult.GameFull then
-            reason = "Server Full"
-        elseif teleportResult == Enum.TeleportResult.Flooded then
-            reason = "Too Many Requests"
-        end
-        
-        warn(string.format("❌ %s - Attempting reconnect...", reason))
-        attemptRejoin(reason)
-    end)
-    
-    -- Handle network disconnections
-    GuiService.ErrorMessageChanged:Connect(function()
-        local message = GuiService:GetErrorMessage()
-        if message and message ~= "" then
-            if string.find(message:lower(), "disconnected") or
-               string.find(message:lower(), "connection") or
-               string.find(message:lower(), "internet") or
-               string.find(message:lower(), "lost") or
-               string.find(message:lower(), "kick") then
-                
-                warn(string.format("❌ Network Error: %s", message))
-                attemptRejoin("Network Error: " .. message)
-            end
-        end
-    end)
-    
-    -- Handle error prompts
-    pcall(function()
-        CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(prompt)
-            if prompt.Name == "ErrorPrompt" then
-                local messageLabel = prompt:FindFirstChild("MessageArea")
-                if messageLabel then
-                    local textLabel = messageLabel:FindFirstChild("ErrorFrame")
-                    if textLabel and textLabel:FindFirstChild("ErrorMessage") then
-                        local errorText = textLabel.ErrorMessage.Text
-                        if string.find(errorText:lower(), "shut") or
-                           string.find(errorText:lower(), "disconnect") or
-                           string.find(errorText:lower(), "error") then
-                            
-                            warn(string.format("❌ Server Error: %s", errorText))
-                            attemptRejoin("Server Error: " .. errorText)
-                        end
-                    end
-                end
-            end
-        end)
-    end)
-    
-    -- Backup heartbeat monitor
-    local lastPlayerCheck = tick()
-    RunService.Heartbeat:Connect(function()
-        if tick() - lastPlayerCheck > 5 then
-            lastPlayerCheck = tick()
-            
-            if not LocalPlayer or not LocalPlayer.Parent then
-                warn("❌ Player removed from game")
-                attemptRejoin("Player Removed")
-            end
-        end
-    end)
-    
-    print("✅ Standalone reconnect system enabled")
-end
-
-
-print("✅ Memory optimization active")
-print("═══════════════════════════════════════════════════════════")
-print("🥔 ULTRA POTATO MODE FULLY LOADED")
-print("═══════════════════════════════════════════════════════════")
